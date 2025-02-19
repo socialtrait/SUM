@@ -11,3 +11,6 @@ h5py
 yacs
 timm
 huggingface_hub
+gradio
+accelerate
+python-dotenv

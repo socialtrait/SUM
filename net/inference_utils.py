@@ -54,17 +54,38 @@ def overlay_heatmap_on_image(original_img_path, heatmap_img_path, output_img_pat
     cv2.imwrite(output_img_path, overlay_image)
 
 
-def write_heatmap_to_image(heatmap, orig_size, output_path):
+import io
+import numpy as np
+import cv2
+from PIL import Image
+import matplotlib.pyplot as plt
+import torch
+
+
+def write_heatmap_to_image(heatmap, orig_size, output_filename):
+    # If heatmap is a torch tensor, convert to numpy.
+    if isinstance(heatmap, torch.Tensor):
+        heatmap = heatmap.cpu().numpy()
+    # If heatmap has an extra channel dimension, remove it.
+    if heatmap.ndim == 3 and heatmap.shape[0] == 1:
+        heatmap = heatmap.squeeze(0)
+
+    # Create a new figure, display the heatmap using the "hot" colormap and remove axes.
     plt.figure()
     plt.imshow(heatmap, cmap="hot")
     plt.axis("off")
 
+    # Save the figure to an in-memory buffer in PNG format.
     buf = io.BytesIO()
     plt.savefig(buf, format="png", bbox_inches="tight", pad_inches=0)
     buf.seek(0)
     plt.close()
 
+    # Load the image from the buffer using PIL.
     img = Image.open(buf)
+    # Convert the image from RGBA (Matplotlib default) to BGR (OpenCV convention).
     img_cv = cv2.cvtColor(np.array(img), cv2.COLOR_RGBA2BGR)
+    # Resize the image to the original size.
     img_resized = cv2.resize(img_cv, orig_size, interpolation=cv2.INTER_AREA)
-    cv2.imwrite(output_path, img_resized)
+    # Save the final image to disk.
+    cv2.imwrite(output_filename, img_resized)
